@@ -1,5 +1,5 @@
 require 'fastlane/action'
-require_relative '../helper/analyze_ios_linkmap_helper'
+# require_relative '../helper/analyze_ios_linkmap_helper'
 
 module Fastlane
   module Actions
@@ -8,8 +8,34 @@ module Fastlane
         UI.message("The analyze_ios_linkmap plugin is working!")
       end
 
+      def self.available_options
+        [
+          FastlaneCore::ConfigItem.new(
+            key: :linkmap,
+            description: "/your/path/to/linkmap.txt",
+            verify_block: ->(value) { 
+              UI.user_error("❌ filepath not pass") unless value
+              UI.user_error!("❌ filepath #{value} not exist") unless File.exist?(value)
+            }
+          ),
+          FastlaneCore::ConfigItem.new(
+            key: :output,
+            description: "write linkmap.txt parsed result Hash to /your/path/to/output.txt",
+            verify_block: ->(value) { 
+              UI.user_error("❌ filepath not pass") unless value
+            },
+            optional: true
+          ),
+          FastlaneCore::ConfigItem.new(
+            key: :symbol,
+            description: "search your give symbol in linkmap.txt from what library",
+            optional: true
+          )
+        ]
+      end
+
       def self.description
-        "xx"
+        "iOS parse linkmap.txt to ruby Hash"
       end
 
       def self.authors
@@ -21,26 +47,11 @@ module Fastlane
       end
 
       def self.details
-        # Optional:
-        "xx"
-      end
-
-      def self.available_options
-        [
-          # FastlaneCore::ConfigItem.new(key: :your_option,
-          #                         env_name: "ANALYZE_IOS_LINKMAP_YOUR_OPTION",
-          #                      description: "A description of your option",
-          #                         optional: false,
-          #                             type: String)
-        ]
+        "iOS parse linkmap.txt to ruby Hash"
       end
 
       def self.is_supported?(platform)
-        # Adjust this if your plugin only works for a particular platform (iOS vs. Android, for example)
-        # See: https://docs.fastlane.tools/advanced/#control-configuration-by-lane-and-by-platform
-        #
-        # [:ios, :mac, :android].include?(platform)
-        true
+        :ios == platform
       end
     end
   end

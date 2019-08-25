@@ -10,8 +10,8 @@ Gem::Specification.new do |spec|
   spec.author        = 'xiongzenghui'
   spec.email         = 'zxcvb1234001@163.com'
 
-  spec.summary       = 'xx'
-  # spec.homepage      = "https://github.com/<GITHUB_USERNAME>/fastlane-plugin-analyze_ios_linkmap"
+  spec.summary       = 'iOS parse linkmap.txt to ruby Hash'
+  spec.homepage      = 'https://github.com/xzhhe/fastlane-plugin-analyze_ios_linkmap'
   spec.license       = "MIT"
 
   spec.files         = Dir["lib/**/*"] + %w(README.md LICENSE)
