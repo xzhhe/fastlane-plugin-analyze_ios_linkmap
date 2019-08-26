@@ -30,6 +30,13 @@ module Fastlane
             key: :symbol,
             description: "search your give symbol in linkmap.txt from what library",
             optional: true
+          ),
+          FastlaneCore::ConfigItem.new(
+            key: :show_details,
+            description: "show all symbols details ?",
+            is_string: false,
+            optional: true,
+            default_value: false
           )
         ]
       end

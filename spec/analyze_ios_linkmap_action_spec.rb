@@ -13,18 +13,27 @@ describe Fastlane::Actions::AnalyzeIosLinkmapAction do
   describe '#analyze_ios_linkmap_helper' do
     it 'parse' do
       parser = Fastlane::Helper::LinkMap::Parser.new('/Users/xiongzenghui/collect_rubygems/fastlane-plugins/fastlane-plugin-analyze_ios_linkmap/spec/demo-LinkMap.txt')
-      parser.parse
       
       # puts '🔵' * 50
-      # pp parser.objects_map
+      # pp parser.object_map
       
       # puts '🔵' * 50
       # pp parser.library_map
       
-      puts '🔵' * 50
-      pp parser.segment_map
+      # puts '🔵' * 50
+      # pp parser.segment_map
       # pp parser.segment_map.count
+
+      # puts '🔵' * 50
+      # pp parser.result
+
+      # puts '🔵' * 50
+      # pp parser.pretty_hash
+
+      puts '🔵' * 50
+      pp parser.pretty_json
     end
+
 
     it 'parse_object_files' do
       # expect(Fastlane::UI).to receive(:message).with("The analyze_ios_linkmap plugin is working!")

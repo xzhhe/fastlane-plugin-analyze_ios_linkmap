@@ -4,7 +4,7 @@ module Fastlane
   UI = FastlaneCore::UI unless Fastlane.const_defined?("UI")
   module Helper
     module LinkMap
-      # require 'pp'
+      require 'pp'
 
       # Symbols:
       # Address	    Size    	  File    Name
@@ -29,74 +29,156 @@ module Fastlane
         end
       end
 
+      # Linkmap.txt 中, 没有直接给出, 只能由【所有的 Section】统计得出
       Segment = Struct.new(:name, :symbol_size, :residual_size)
 
+      # @object_map:
+      # 
       #<FastlaneCore::Helper::LinkMap::ObjectFile:0x007ff93ec4fc90
-      # @file_id=39,
-      # @framework=false,
-      # @library="libbangcle_crypto_tool.a",
-      # @symbols=[]
+      #   @file_id=39,
+      #   object="ViewController.o",
+      #   @framework=false,
+      #   @library="libbangcle_crypto_tool.a",
+      #   @symbols=[
+      #     <struct FastlaneCore::Helper::LinkMap::Symbol
+      #       address=4294976749,
+      #       size=15,
+      #       object_file_id=2,
+      #       name="literal string: ViewController"
+      #     >,
+      #     <struct FastlaneCore::Helper::LinkMap::Symbol
+      #       address=4294974150,
+      #       size=12,
+      #       object_file_id=2,
+      #       name="literal string: viewDidLoad"
+      #     >
+      #   ]
       # >
       ObjectFile = Struct.new(:file_id, :object, :library, :framework, :symbols, :size, :dead_symbol_size) 
 
+      # @library_map:
+      # 
       # {
       #   "AFNetworking"=>
       #     <struct FastlaneCore::Helper::LinkMap::Library
       #       name="AFNetworking",
       #       size=0,
-      #       objects=[24],
+      #       object_file_ids=[23,24,25,26,27,28,29,30],
       #       dead_symbol_size=0,
-      #       pod_name="AFNetworking">
+      #       pod_name="AFNetworking"
+      #     >,
+      #   "libPods-athenacidemo.a"=>
+      #     <struct FastlaneCore::Helper::LinkMap::Library
+      #       name="libPods-athenacidemo.a",
+      #       size=260,
+      #       object_file_ids=[5,6,7,8,9,10],
+      #       dead_symbol_size=0,
+      #       pod_name=""
+      #     >,
+      #    ...........
       # }
-      Library = Struct.new(:name, :size, :objects, :dead_symbol_size, :pod_name)
+      Library = Struct.new(:name, :size, :object_file_ids, :dead_symbol_size, :pod_name)
       
       class Parser
-        attr_accessor(:objects_map, :library_map, :section_map, :segment_map)
+        attr_accessor(:object_map, :library_map, :section_map, :segment_map)
 
         def initialize(filepath)
           @filepath = filepath
-          @objects_map = {}
+          @object_map = {}
           @library_map = {}
           @section_map = {}
           @segment_map = {} # 根据 @section_map 统计【所有的 section】得出
+
+          parse
         end
 
         def pretty_json
-          if @filepath.nil? && !File.exist?(@filepath)
-            UI.user_error!("#{@filepath} not exist")
+          result = pretty_hash
+          unless result
+            UI.user_error!("❌ LinkMap parsed failed!")
           end
-          JSON.pretty_generate(pretty_hash)
+          JSON.pretty_generate(result)
         end
 
         def pretty_hash
-          UI.user_error!("#{@filepath} not pass")  unless @filepath
-          UI.user_error!("#{@filepath} not exist") unless File.exist?(@filepath)
+          UI.user_error!("❌ #{@filepath} not pass")  unless @filepath
+          UI.user_error!("❌ #{@filepath} not exist") unless File.exist?(@filepath)
 
-          # 1.
+          result
+        end
+
+        def result
+          # 1. cache
           return @result if @result
+
+          # 2. sort object_map[i].ObjectFile.symbols
+          @object_map.each do |ofid, object|
+            next unless object.symbols
+  
+            object.symbols.sort! do |sym1, sym2|
+              sym2[:size] <=> sym1[:size]
+            end
+          end
+
+          # 3. linkmap.txt 所有的 symbol 总大小
+          total_size = @library_map.values.map(&:size).inject(:+)
+          total_dead_size = @library_map.values.map(&:dead_symbol_size).inject(:+)
+
+          # 4. 
+          library_map_values = @library_map.values.sort do |a, b|
+            b.size <=> a.size
+          end
+          library_map_values.compact!
+
+          # 5. 
+          library_maps = library_map_values.map do |lib|
+            pod_name = lib.name
+            unless lib.pod_name.empty?
+              pod_name = lib.pod_name
+            end
+            # pp "pod_name=#{pod_name}"
+
+            {
+              library: lib.name,
+              pod: pod_name,
+              total: lib.size,
+              format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.size),
+              total_dead: lib.dead_symbol_size,
+              format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.dead_symbol_size),
+              objects: lib.object_file_ids.map do |object_file_id|
+                # Struct.new(:file_id, :object, :library, :framework, :symbols, :size, :dead_symbol_size) 
+                object_file = @object_map[object_file_id]
+                if object_file
+                  {
+                    object: object_file.object,
+                    symbols: object_file.symbols.map do |symb|
+                      {
+                        name: symb.name,
+                        total: symb.size,
+                        format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(symb.size),
+                      }
+                    end
+                  }
+                else
+                  nil
+                end
+              end
+            }
+          end
           
-          # 2.
-          return parse
-          
-          # 3.
-          # total_size = @library_map.values.map(&:size).inject(:+)
-          
-          # 4.
-          # detail = @library_map.values.map do |lib|
-          #   {
-          #     library: lib.name,
-          #     pod: lib.pod,
-          #     size: lib.size,
-          #     dead_symbol_size: lib.dead_symbol_size,
-          #     objects: lib.objects.map do |obj|
-          #       @objects_map[obj][:object]
-          #     end
-          #   }
-          # end
-          
+          # 6.
+          @result = {
+            total: total_size,
+            format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(total_size),
+            total_dead: total_dead_size,
+            format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(total_dead_size),
+            librarys: library_maps
+          }
+          @result
         end
 
         def parse
+          # 读取 Linkmap.txt 【每一行】进行解析
           File.foreach(@filepath).with_index do |line, line_num|
             begin
               unless line.valid_encoding?
@@ -104,13 +186,13 @@ module Fastlane
               end
   
               if line.start_with? "#"
-                if line.start_with? "# Object files:"
+                if line.start_with? "# Object files:" #=> 初始化 @object_map
                   @subparser = :parse_object_files
-                elsif line.start_with? "# Sections:"
+                elsif line.start_with? "# Sections:"  #=> 初始化 @section_map
                   @subparser = :parse_sections
-                elsif line.start_with? "# Symbols:"
+                elsif line.start_with? "# Symbols:"   #=> 解析得到每一个 symbol 【占用】大小
                   @subparser = :parse_symbols
-                elsif line.start_with? '# Dead Stripped Symbols:'
+                elsif line.start_with? '# Dead Stripped Symbols:' #=> 解析得到 dead strpped 【废弃】大小
                   @subparser = :parse_dead
                 end
               else
@@ -123,16 +205,6 @@ module Fastlane
             end
           end
           # puts "There are #{@section_map.values.map{|value| value[:residual_size]}.inject(:+)} Byte in some section can not be analyze"
-  
-          # 对 objects_map 中的每一个 library/xx.o/symbols 进行排序
-          @objects_map.each do |object_id, map|
-            symbols = map[:symbols]
-            next unless symbols
-  
-            symbols.sort! do |sym1, sym2|
-              sym2[:size] <=> sym1[:size]
-            end
-          end
         end
   
         def parse_object_files(line)
@@ -148,9 +220,9 @@ module Fastlane
             # ...........
   
             # 1.
-            objc_file_id      = $1.to_i #=> 6、23
-            library_name      = $2      #=> libbangcle_crypto_tool.a、AFNetworking
-            object_file       = $3      #=> crypto.o、AFAutoPurgingImageCache.o
+            objc_file_id      = $1.to_i #=> 6 , 23
+            library_name      = $2      #=> libbangcle_crypto_tool.a , AFNetworking
+            object_file       = $3      #=> crypto.o , AFAutoPurgingImageCache.o
 
             # 2.
             of = ObjectFile.new(
@@ -167,15 +239,15 @@ module Fastlane
               0
             )
 
-            # 3.
-            @objects_map[objc_file_id] = of
+            # 3. 保存解析 xx.o (object file) 的数据
+            @object_map[objc_file_id] = of
   
-            # 4. 创建【静态库】对应的 map
+            # 4. 创建【静态库 library】对应的实体对象
             library = @library_map[library_name]
             library ||= Library.new(library_name, 0, [], 0, '')
   
             # 5. 【追加】 xx.o 文件位于 ``# Object Files`` 后面的 [ n] 标号
-            library.objects << objc_file_id
+            library.object_file_ids << objc_file_id
   
             # 6. 确认 library 的 pod_name 名字
             if line.include?('/Pods/')
@@ -235,7 +307,7 @@ module Fastlane
             )
   
             # 4.
-            @objects_map[objc_file_id] = of
+            @object_map[objc_file_id] = of
             # puts "#{objc_file_id} -- #{library_name}"
 
             # 5. 
@@ -243,7 +315,7 @@ module Fastlane
             library ||= Library.new(library_name, 0, [], 0, '')
 
             # 6.
-            library.objects << objc_file_id
+            library.object_file_ids << objc_file_id
   
             # 7.
             @library_map[library_name] = library
@@ -267,7 +339,7 @@ module Fastlane
             )
 
             # 3.
-            @objects_map[objc_file_id] = of
+            @object_map[objc_file_id] = of
           end
         end
 
@@ -315,7 +387,7 @@ module Fastlane
             symbol_name = $4              #=> Name
   
             # 2.
-            object_file = @objects_map[object_file_id]
+            object_file = @object_map[object_file_id]
             
             # 3.
             unless object_file
@@ -334,14 +406,14 @@ module Fastlane
             # 5. 追加【symbol】符号
             object_file.symbols.push(symbol)
 
-            # 6. 【Object File】累加总大小
+            # 6. 统计【Object File】总大小
             object_file.size += symbol_size
 
-            # 7. 【library/framework】累加总大小
+            # 7. 统计【library/framework】总大小
             library = @library_map[object_file.library]
             library.size += symbol_size if library
 
-            # 8. 【segment】累加总大小
+            # 8. 统计【segment】总大小
             sections = @section_map.detect do |seg_sec_name, sec|
               if sec
                 (sec.start_addr...sec.end_addr).include?(symbol_address)
@@ -387,7 +459,7 @@ module Fastlane
             size = $1.to_i(16)
             file = $2.to_i
 
-            object_file = @objects_map[file]
+            object_file = @object_map[file]
             return unless object_file
             
             # 累加 xx.o 的 dead symbol size
