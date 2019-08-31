@@ -1,17 +1,46 @@
 require 'fastlane/action'
-# require_relative '../helper/analyze_ios_linkmap_helper'
+require_relative '../helper/analyze_ios_linkmap_helper'
 
 module Fastlane
   module Actions
+    module ShatedValues
+      ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL = :ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL
+      ANALYZE_IOS_LINKMAP_PARED_HASH    = :ANALYZE_IOS_LINKMAP_PARED_HASH
+      ANALYZE_IOS_LINKMAP_PARED_JSON    = :ANALYZE_IOS_LINKMAP_PARED_JSON
+    end
+
     class AnalyzeIosLinkmapAction < Action
       def self.run(params)
-        UI.message("The analyze_ios_linkmap plugin is working!")
+        filepath = params[:filepath]
+        search_symbol = params[:search_symbol]
+
+        parser = Fastlane::Helper::LinkMap::Parser.new(filepath)
+
+        if search_symbol
+          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL] = []
+          parser.pretty_hash[:librarys].each do |lib|
+            lib[:objects].each do |obj|
+              obj[:symbols].each do |symol|
+                next unless symol[:name].include?(search_symbol)
+
+                Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL] << {
+                  library: lib[:library],
+                  object_file: obj[:object],
+                  symbol: symol[:name]
+                }
+              end
+            end
+          end
+        end
+
+        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARED_HASH] = parser.pretty_hash
+        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARED_JSON] = parser.pretty_json
       end
 
       def self.available_options
         [
           FastlaneCore::ConfigItem.new(
-            key: :linkmap,
+            key: :filepath,
             description: "/your/path/to/linkmap.txt",
             verify_block: ->(value) { 
               UI.user_error("❌ filepath not pass") unless value
@@ -19,30 +48,15 @@ module Fastlane
             }
           ),
           FastlaneCore::ConfigItem.new(
-            key: :output,
-            description: "write linkmap.txt parsed result Hash to /your/path/to/output.txt",
-            verify_block: ->(value) { 
-              UI.user_error("❌ filepath not pass") unless value
-            },
-            optional: true
-          ),
-          FastlaneCore::ConfigItem.new(
-            key: :symbol,
+            key: :search_symbol,
             description: "search your give symbol in linkmap.txt from what library",
             optional: true
-          ),
-          FastlaneCore::ConfigItem.new(
-            key: :show_details,
-            description: "show all symbols details ?",
-            is_string: false,
-            optional: true,
-            default_value: false
           )
         ]
       end
 
       def self.description
-        "iOS parse linkmap.txt to ruby Hash"
+        "iOS parse linkmap.txt to ruby Hash or JSON"
       end
 
       def self.authors

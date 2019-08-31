@@ -20,7 +20,26 @@ xx
 
 Check out the [example `Fastfile`](fastlane/Fastfile) to see how to use this plugin. Try it by cloning the repo, running `fastlane install_plugins` and `bundle exec fastlane test`.
 
-**Note to author:** Please set up a sample project to make it easy for users to explore what your plugin does. Provide everything that is necessary to try out the plugin in this project (including a sample Xcode/Android project if necessary)
+```ruby
+lane :test do
+  # eg1: 
+  analyze_ios_linkmap(
+    filepath: '/Users/xiongzenghui/collect_rubygems/fastlane-plugins/fastlane-plugin-analyze_ios_linkmap/spec/demo-LinkMap.txt'
+  )
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARED_HASH]
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARED_JSON]
+
+  # eg2: 
+  analyze_ios_linkmap(
+    filepath: '/Users/xiongzenghui/Desktop/osee2unifiedRelease-LinkMap-normal-arm64.txt',
+    search_symbol: 'TDATEvo'
+  )
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL]
+end
+
+```
+
+
 
 ## Run tests for this plugin
 

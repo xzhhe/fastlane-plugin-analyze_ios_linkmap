@@ -32,7 +32,6 @@ module Fastlane
       # Linkmap.txt 中, 没有直接给出, 只能由【所有的 Section】统计得出
       Segment = Struct.new(:name, :symbol_size, :residual_size)
 
-      # @object_map:
       # 
       #<FastlaneCore::Helper::LinkMap::ObjectFile:0x007ff93ec4fc90
       #   @file_id=39,
@@ -56,27 +55,16 @@ module Fastlane
       # >
       ObjectFile = Struct.new(:file_id, :object, :library, :framework, :symbols, :size, :dead_symbol_size) 
 
-      # @library_map:
       # 
-      # {
-      #   "AFNetworking"=>
-      #     <struct FastlaneCore::Helper::LinkMap::Library
-      #       name="AFNetworking",
-      #       size=0,
-      #       object_file_ids=[23,24,25,26,27,28,29,30],
-      #       dead_symbol_size=0,
-      #       pod_name="AFNetworking"
-      #     >,
-      #   "libPods-athenacidemo.a"=>
-      #     <struct FastlaneCore::Helper::LinkMap::Library
-      #       name="libPods-athenacidemo.a",
-      #       size=260,
-      #       object_file_ids=[5,6,7,8,9,10],
-      #       dead_symbol_size=0,
-      #       pod_name=""
-      #     >,
-      #    ...........
-      # }
+      # "AFNetworking"=>
+      #   <struct FastlaneCore::Helper::LinkMap::Library
+      #     name="AFNetworking",
+      #     size=0,
+      #     object_file_ids=[23,24,25,26,27,28,29,30],
+      #     dead_symbol_size=0,
+      #     pod_name="AFNetworking"
+      # >
+      # 
       Library = Struct.new(:name, :size, :object_file_ids, :dead_symbol_size, :pod_name)
       
       class Parser
@@ -84,97 +72,13 @@ module Fastlane
 
         def initialize(filepath)
           @filepath = filepath
+
           @object_map = {}
           @library_map = {}
           @section_map = {}
           @segment_map = {} # 根据 @section_map 统计【所有的 section】得出
 
           parse
-        end
-
-        def pretty_json
-          result = pretty_hash
-          unless result
-            UI.user_error!("❌ LinkMap parsed failed!")
-          end
-          JSON.pretty_generate(result)
-        end
-
-        def pretty_hash
-          UI.user_error!("❌ #{@filepath} not pass")  unless @filepath
-          UI.user_error!("❌ #{@filepath} not exist") unless File.exist?(@filepath)
-
-          result
-        end
-
-        def result
-          # 1. cache
-          return @result if @result
-
-          # 2. sort object_map[i].ObjectFile.symbols
-          @object_map.each do |ofid, object|
-            next unless object.symbols
-  
-            object.symbols.sort! do |sym1, sym2|
-              sym2[:size] <=> sym1[:size]
-            end
-          end
-
-          # 3. linkmap.txt 所有的 symbol 总大小
-          total_size = @library_map.values.map(&:size).inject(:+)
-          total_dead_size = @library_map.values.map(&:dead_symbol_size).inject(:+)
-
-          # 4. 
-          library_map_values = @library_map.values.sort do |a, b|
-            b.size <=> a.size
-          end
-          library_map_values.compact!
-
-          # 5. 
-          library_maps = library_map_values.map do |lib|
-            pod_name = lib.name
-            unless lib.pod_name.empty?
-              pod_name = lib.pod_name
-            end
-            # pp "pod_name=#{pod_name}"
-
-            {
-              library: lib.name,
-              pod: pod_name,
-              total: lib.size,
-              format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.size),
-              total_dead: lib.dead_symbol_size,
-              format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.dead_symbol_size),
-              objects: lib.object_file_ids.map do |object_file_id|
-                # Struct.new(:file_id, :object, :library, :framework, :symbols, :size, :dead_symbol_size) 
-                object_file = @object_map[object_file_id]
-                if object_file
-                  {
-                    object: object_file.object,
-                    symbols: object_file.symbols.map do |symb|
-                      {
-                        name: symb.name,
-                        total: symb.size,
-                        format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(symb.size),
-                      }
-                    end
-                  }
-                else
-                  nil
-                end
-              end
-            }
-          end
-          
-          # 6.
-          @result = {
-            total: total_size,
-            format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(total_size),
-            total_dead: total_dead_size,
-            format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(total_dead_size),
-            librarys: library_maps
-          }
-          @result
         end
 
         def parse
@@ -214,9 +118,9 @@ module Fastlane
             # [  6] /Users/xiongzenghui/Desktop/launching_time/osee2unified/osee2unified/Pods/BangcleCryptoTool/BangcleCryptoTool/libs/libbangcle_crypto_tool.a(crypto.o)
             # [  7] /Users/xiongzenghui/Desktop/launching_time/osee2unified/osee2unified/Pods/BangcleCryptoTool/BangcleCryptoTool/libs/libbangcle_crypto_tool.a(des.o)
             # ...............
-            # [ 23] /Users/zhihu/ci-jenkins/workspace/zhihu-iOS-module/VenomShellProject/osee2unified/Pods/AFNetworking/AFNetworking.framework/AFNetworking(AFAutoPurgingImageCache.o)
-            # [ 24] /Users/zhihu/ci-jenkins/workspace/zhihu-iOS-module/VenomShellProject/osee2unified/Pods/AFNetworking/AFNetworking.framework/AFNetworking(AFHTTPSessionManager.o)
-            # [ 25] /Users/zhihu/ci-jenkins/workspace/zhihu-iOS-module/VenomShellProject/osee2unified/Pods/AFNetworking/AFNetworking.framework/AFNetworking(AFImageDownloader.o)
+            # [ 23] /Users/xxx/ci-jenkins/workspace/xxx-iOS-module/VenomShellProject/osee2unified/Pods/AFNetworking/AFNetworking.framework/AFNetworking(AFAutoPurgingImageCache.o)
+            # [ 24] /Users/xxx/ci-jenkins/workspace/xxx-iOS-module/VenomShellProject/osee2unified/Pods/AFNetworking/AFNetworking.framework/AFNetworking(AFHTTPSessionManager.o)
+            # [ 25] /Users/xxx/ci-jenkins/workspace/xxx-iOS-module/VenomShellProject/osee2unified/Pods/AFNetworking/AFNetworking.framework/AFNetworking(AFImageDownloader.o)
             # ...........
   
             # 1.
@@ -251,7 +155,7 @@ module Fastlane
   
             # 6. 确认 library 的 pod_name 名字
             if line.include?('/Pods/')
-              # [ 23] /Users/zhihu/ci-jenkins/workspace/zhihu-iOS-module/VenomShellProject/osee2unified/Pods/AFNetworking/AFNetworking.framework/AFNetworking(AFAutoPurgingImageCache.o)
+              # [ 23] /Users/xxx/ci-jenkins/workspace/xxx-iOS-module/VenomShellProject/osee2unified/Pods/AFNetworking/AFNetworking.framework/AFNetworking(AFAutoPurgingImageCache.o)
               divstr = line.split('/Pods/').last  #=> AFNetworking/AFNetworking.framework/AFNetworking(AFAutoPurgingImageCache.o
               pod_name = divstr.split('/').first  #=> AFNetworking
               library.pod_name = pod_name
@@ -446,11 +350,11 @@ module Fastlane
         def parse_dead(line)
           # Dead Stripped Symbols:
           #           Size    	  File  Name
-          # <<dead>> 	0x00000028	[  2] literal string: com.zhihu.audioBook.notifications.start
-          # <<dead>> 	0x00000029	[  2] literal string: com.zhihu.audioBook.notifications.stoped
-          # <<dead>> 	0x0000002A	[  2] literal string: com.zhihu.audioBook.notificaitons.loading
-          # <<dead>> 	0x0000002A	[  2] literal string: com.zhihu.audioBook.notificaitons.palying
-          # <<dead>> 	0x0000002D	[  2] literal string: com.zhihu.audioBook.notificaitons.paySuccess
+          # <<dead>> 	0x00000028	[  2] literal string: com.xxx.audioBook.notifications.start
+          # <<dead>> 	0x00000029	[  2] literal string: com.xxx.audioBook.notifications.stoped
+          # <<dead>> 	0x0000002A	[  2] literal string: com.xxx.audioBook.notificaitons.loading
+          # <<dead>> 	0x0000002A	[  2] literal string: com.xxx.audioBook.notificaitons.palying
+          # <<dead>> 	0x0000002D	[  2] literal string: com.xxx.audioBook.notificaitons.paySuccess
           # <<dead>> 	0x00000006	[  2] literal string: appId
           # <<dead>> 	0x00000008	[  2] literal string: fakeURL
           # <<dead>> 	0x00000007	[  2] literal string: 300300
@@ -468,6 +372,91 @@ module Fastlane
             # 累加 library(xx.o) 的 dead symbol size
             @library_map[object_file.library].dead_symbol_size += size
           end
+        end
+
+        def pretty_json
+          result = pretty_hash
+          unless result
+            UI.user_error!("❌ LinkMap parsed failed!")
+          end
+          JSON.pretty_generate(result)
+        end
+
+        def pretty_hash
+          UI.user_error!("❌ #{@filepath} not pass")  unless @filepath
+          UI.user_error!("❌ #{@filepath} not exist") unless File.exist?(@filepath)
+
+          result
+        end
+
+        def result
+          # 1. cache
+          return @result if @result
+
+          # 2. sort object_map[i].ObjectFile.symbols
+          @object_map.each do |ofid, object|
+            next unless object.symbols
+  
+            object.symbols.sort! do |sym1, sym2|
+              sym2[:size] <=> sym1[:size]
+            end
+          end
+
+          # 3. linkmap.txt 所有的 symbol 总大小
+          total_size = @library_map.values.map(&:size).inject(:+)
+          total_dead_size = @library_map.values.map(&:dead_symbol_size).inject(:+)
+
+          # 4. 
+          library_map_values = @library_map.values.sort do |a, b|
+            b.size <=> a.size
+          end
+          library_map_values.compact!
+
+          # 5. 
+          library_maps = library_map_values.map do |lib|
+            pod_name = lib.name
+            unless lib.pod_name.empty?
+              pod_name = lib.pod_name
+            end
+            # pp "pod_name=#{pod_name}"
+
+            {
+              library: lib.name,
+              pod: pod_name,
+              total: lib.size,
+              format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.size),
+              total_dead: lib.dead_symbol_size,
+              format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.dead_symbol_size),
+              objects: lib.object_file_ids.map do |object_file_id|
+                # Struct.new(:file_id, :object, :library, :framework, :symbols, :size, :dead_symbol_size) 
+                object_file = @object_map[object_file_id]
+                if object_file
+                  {
+                    object: object_file.object,
+                    symbols: object_file.symbols.map do |symb|
+                      {
+                        name: symb.name,
+                        total: symb.size,
+                        format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(symb.size),
+                      }
+                    end
+                  }
+                else
+                  nil
+                end
+              end
+            }
+          end
+          
+          # 6.
+          @result = {
+            total: total_size,
+            format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(total_size),
+            total_dead: total_dead_size,
+            format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(total_dead_size),
+            librarys: library_maps
+          }
+          @result
         end
       end
     end

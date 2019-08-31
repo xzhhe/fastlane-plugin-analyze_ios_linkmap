@@ -1,3 +1,13 @@
 lane :test do
-  analyze_ios_linkmap
+  analyze_ios_linkmap(
+    filepath: '/Users/xiongzenghui/collect_rubygems/fastlane-plugins/fastlane-plugin-analyze_ios_linkmap/spec/demo-LinkMap.txt'
+  )
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARED_HASH]
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARED_JSON]
+
+  analyze_ios_linkmap(
+    filepath: '/Users/xiongzenghui/Desktop/osee2unifiedRelease-LinkMap-normal-arm64.txt',
+    search_symbol: 'TDATEvo'
+  )
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL]
 end

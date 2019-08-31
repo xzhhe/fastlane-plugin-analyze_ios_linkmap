@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = 'iOS parse linkmap.txt to ruby Hash'
   spec.homepage      = 'https://github.com/xzhhe/fastlane-plugin-analyze_ios_linkmap'
-  spec.license       = "MIT"
+  spec.license       = 'MIT'
 
   spec.files         = Dir["lib/**/*"] + %w(README.md LICENSE)
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
