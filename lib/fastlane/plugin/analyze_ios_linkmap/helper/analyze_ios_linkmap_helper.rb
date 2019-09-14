@@ -70,8 +70,12 @@ module Fastlane
       class Parser
         attr_accessor(:object_map, :library_map, :section_map, :segment_map)
 
-        def initialize(filepath)
-          @filepath = filepath
+        def initialize(options)
+          @filepath = options[:filepath]
+          @all_symbols = options[:all_symbols]
+
+          UI.user_error!("❌ #{@filepath} not pass")  unless @filepath
+          UI.user_error!("❌ #{@filepath} not exist") unless File.exist?(@filepath)
 
           @object_map = {}
           @library_map = {}
@@ -79,6 +83,116 @@ module Fastlane
           @segment_map = {} # 根据 @section_map 统计【所有的 section】得出
 
           parse
+        end
+
+        def pretty_json
+          JSON.pretty_generate(pretty_hash)
+        end
+
+        def pretty_hash
+          return @result if @result
+
+          # sort object_map[i].ObjectFile.symbols
+          @object_map.each do |ofid, object|
+            next unless object.symbols
+  
+            object.symbols.sort! do |sym1, sym2|
+              sym2[:size] <=> sym1[:size]
+            end
+          end
+
+          # 计算 linkmap.txt 所有的 symbol 总大小
+          total_size = @library_map.values.map(&:size).inject(:+)
+          total_dead_size = @library_map.values.map(&:dead_symbol_size).inject(:+)
+
+          # sort object_map[i]
+          library_map_values = @library_map.values.sort do |a, b|
+            b.size <=> a.size
+          end
+          library_map_values.compact!
+
+          library_maps = library_map_values.map do |lib|
+            pod_name = lib.name
+            unless lib.pod_name.empty?
+              pod_name = lib.pod_name
+            end
+
+            if @all_symbols
+              {
+                library: lib.name,
+                pod: pod_name,
+                total: lib.size,
+                format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.size),
+                total_dead: lib.dead_symbol_size,
+                format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.dead_symbol_size),
+                objects: lib.object_file_ids.map do |object_file_id|
+                  # Struct.new(:file_id, :object, :library, :framework, :symbols, :size, :dead_symbol_size) 
+                  object_file = @object_map[object_file_id]
+                  if object_file
+                    {
+                      object: object_file.object,
+                      symbols: object_file.symbols.map do |symb|
+                        {
+                          name: symb.name,
+                          total: symb.size,
+                          format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(symb.size),
+                        }
+                      end
+                    }
+                  else
+                    nil
+                  end
+                end
+              }
+            else
+              {
+                library: lib.name,
+                pod: pod_name,
+                total: lib.size,
+                format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.size),
+                total_dead: lib.dead_symbol_size,
+                format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.dead_symbol_size)
+              }
+            end
+          end
+          
+          @result = {
+            total_count: library_maps.count,
+            total_size: total_size,
+            format_total_size: Fastlane::Helper::LinkMap::FileHelper.format_size(total_size),
+            total_dead_size: total_dead_size,
+            format_total_dead_size: Fastlane::Helper::LinkMap::FileHelper.format_size(total_dead_size),
+            librarys: library_maps
+          }
+
+          @result
+        end
+
+        def pretty_merge_by_pod_hash
+          return @merge_by_pod_result if @merge_by_pod_result
+
+          @merge_by_pod_result = {
+            total_count: pretty_hash[:total_count],
+            total_size: pretty_hash[:total_size],
+            format_total_size: pretty_hash[:format_total_size],
+            total_dead_size: pretty_hash[:total_dead_size],
+            format_total_dead_size: pretty_hash[:format_total_dead_size]
+          }
+
+          pods = Hash.new
+          pretty_hash[:librarys].each do |lib|
+            apod_librarys = pods[lib[:pod]]
+            apod_librarys ||= Array.new
+            apod_librarys << lib
+            pods[lib[:pod]] = apod_librarys
+          end
+          @merge_by_pod_result[:pods] = pods
+
+          @merge_by_pod_result
+        end
+
+        def pretty_merge_by_pod_json
+          JSON.pretty_generate(pretty_merge_by_pod_hash)
         end
 
         def parse
@@ -372,91 +486,6 @@ module Fastlane
             # 累加 library(xx.o) 的 dead symbol size
             @library_map[object_file.library].dead_symbol_size += size
           end
-        end
-
-        def pretty_json
-          result = pretty_hash
-          unless result
-            UI.user_error!("❌ LinkMap parsed failed!")
-          end
-          JSON.pretty_generate(result)
-        end
-
-        def pretty_hash
-          UI.user_error!("❌ #{@filepath} not pass")  unless @filepath
-          UI.user_error!("❌ #{@filepath} not exist") unless File.exist?(@filepath)
-
-          result
-        end
-
-        def result
-          # 1. cache
-          return @result if @result
-
-          # 2. sort object_map[i].ObjectFile.symbols
-          @object_map.each do |ofid, object|
-            next unless object.symbols
-  
-            object.symbols.sort! do |sym1, sym2|
-              sym2[:size] <=> sym1[:size]
-            end
-          end
-
-          # 3. linkmap.txt 所有的 symbol 总大小
-          total_size = @library_map.values.map(&:size).inject(:+)
-          total_dead_size = @library_map.values.map(&:dead_symbol_size).inject(:+)
-
-          # 4. 
-          library_map_values = @library_map.values.sort do |a, b|
-            b.size <=> a.size
-          end
-          library_map_values.compact!
-
-          # 5. 
-          library_maps = library_map_values.map do |lib|
-            pod_name = lib.name
-            unless lib.pod_name.empty?
-              pod_name = lib.pod_name
-            end
-            # pp "pod_name=#{pod_name}"
-
-            {
-              library: lib.name,
-              pod: pod_name,
-              total: lib.size,
-              format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.size),
-              total_dead: lib.dead_symbol_size,
-              format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(lib.dead_symbol_size),
-              objects: lib.object_file_ids.map do |object_file_id|
-                # Struct.new(:file_id, :object, :library, :framework, :symbols, :size, :dead_symbol_size) 
-                object_file = @object_map[object_file_id]
-                if object_file
-                  {
-                    object: object_file.object,
-                    symbols: object_file.symbols.map do |symb|
-                      {
-                        name: symb.name,
-                        total: symb.size,
-                        format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(symb.size),
-                      }
-                    end
-                  }
-                else
-                  nil
-                end
-              end
-            }
-          end
-          
-          # 6.
-          @result = {
-            total: total_size,
-            format_total: Fastlane::Helper::LinkMap::FileHelper.format_size(total_size),
-            total_dead: total_dead_size,
-            format_total_dead: Fastlane::Helper::LinkMap::FileHelper.format_size(total_dead_size),
-            librarys: library_maps
-          }
-          @result
         end
       end
     end
