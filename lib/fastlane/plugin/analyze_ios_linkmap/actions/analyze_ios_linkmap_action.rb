@@ -4,19 +4,19 @@ require_relative '../helper/analyze_ios_linkmap_helper'
 module Fastlane
   module Actions
     module ShatedValues
-      ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL = :ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL
-      ANALYZE_IOS_LINKMAP_PARSED_HASH    = :ANALYZE_IOS_LINKMAP_PARSED_HASH
-      ANALYZE_IOS_LINKMAP_PARSED_JSON    = :ANALYZE_IOS_LINKMAP_PARSED_JSON
+      ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL     = :ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL
+      ANALYZE_IOS_LINKMAP_PARSED_HASH       = :ANALYZE_IOS_LINKMAP_PARSED_HASH
+      ANALYZE_IOS_LINKMAP_PARSED_JSON       = :ANALYZE_IOS_LINKMAP_PARSED_JSON
       ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH = :ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH
       ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON = :ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON
     end
 
     class AnalyzeIosLinkmapAction < Action
       def self.run(params)
-        filepath = params[:filepath]
+        filepath      = params[:filepath]
         search_symbol = params[:search_symbol]
-        all_symbols = params[:all_symbols] || false
-        merge_by_pod = params[:merge_by_pod] || false
+        all_symbols   = params[:all_symbols]  || false
+        merge_by_pod  = params[:merge_by_pod] || false
 
         parser = Fastlane::Helper::LinkMap::Parser.new({
           filepath: filepath,
@@ -54,7 +54,7 @@ module Fastlane
           FastlaneCore::ConfigItem.new(
             key: :filepath,
             description: "/your/path/to/linkmap.txt",
-            verify_block: ->(value) { 
+            verify_block: ->(value) {
               UI.user_error("❌ filepath not pass") unless value
               UI.user_error!("❌ filepath #{value} not exist") unless File.exist?(value)
             }
