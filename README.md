@@ -12,33 +12,72 @@ fastlane add_plugin analyze_ios_linkmap
 
 ## About analyze_ios_linkmap
 
-xx
-
 **Note to author:** Add a more detailed description about this plugin here. If your plugin contains multiple actions, make sure to mention them here.
 
 ## Example
 
 Check out the [example `Fastfile`](fastlane/Fastfile) to see how to use this plugin. Try it by cloning the repo, running `fastlane install_plugins` and `bundle exec fastlane test`.
 
+### Eg1: 默认解析一个 linkmap.txt
+
 ```ruby
-lane :test do
-  # eg1: 
-  analyze_ios_linkmap(
-    filepath: '/Users/xiongzenghui/collect_rubygems/fastlane-plugins/fastlane-plugin-analyze_ios_linkmap/spec/demo-LinkMap.txt'
-  )
-  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
-  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON]
-
-  # eg2: 
-  analyze_ios_linkmap(
-    filepath: '/Users/xiongzenghui/Desktop/osee2unifiedRelease-LinkMap-normal-arm64.txt',
-    search_symbol: 'TDATEvo'
-  )
-  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL]
-end
-
+path = '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt'
+Fastlane::Actions::AnalyzeIosLinkmapAction.run( file_path: path )
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON]
 ```
 
+### Eg2: 显示所有的 object file
+
+```ruby
+path = '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt'
+Fastlane::Actions::AnalyzeIosLinkmapAction.run(
+  file_path: path,
+  all_objects: true
+)
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON]
+```
+
+### Eg3: 显示所有的 symbol
+
+```ruby
+path = '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt'
+Fastlane::Actions::AnalyzeIosLinkmapAction.run(
+  file_path: path,
+  all_objects: true,
+  all_symbols: true
+)
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON]
+```
+
+### Eg4: 根据 podspec name 进行合并
+
+```ruby
+path = '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt'
+Fastlane::Actions::AnalyzeIosLinkmapAction.run(
+  file_path: path,
+  all_objects: false,
+  all_symbols: false,
+  merge_by_pod: true
+)
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON]
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH]
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON]
+```
+
+### Eg5: 搜索一个 symbol 所属的 library
+
+```ruby
+path = '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt'
+Fastlane::Actions::AnalyzeIosLinkmapAction.run(
+  file_path: path,
+  search_symbol: 'TDATEvo'
+)
+pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL]
+```
 
 
 ## Run tests for this plugin

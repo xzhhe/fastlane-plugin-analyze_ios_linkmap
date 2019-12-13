@@ -1,13 +1,41 @@
-lane :test do
-  analyze_ios_linkmap(
-    # filepath: '/Users/xiongzenghui/Desktop/6.13.0_osee2unifiedRelease-LinkMap-normal-arm64.txt'
-    filepath: '/Users/xiongzenghui/Desktop/6.13.0.1_osee2unifiedRelease-LinkMap-normal-arm64.txt'
-  )
-  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
+require 'pp'
 
-  # analyze_ios_linkmap(
-  #   filepath: '/Users/xiongzenghui/Desktop/osee2unifiedRelease-LinkMap-normal-arm64.txt',
-  #   search_symbol: 'TDATEvo'
-  # )
-  # pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL]
+lane :test1 do
+  analyze_ios_linkmap(
+    filepath: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt'
+  )
+
+  puts '-' * 50
+  # pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON]
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
+end
+
+lane :test2 do
+  analyze_ios_linkmap(
+    filepath: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
+    all_symbols: true
+  )
+
+  puts '-' * 50
+  # pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON]
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
+end
+
+lane :test3 do
+  analyze_ios_linkmap(
+    filepath: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
+    merge_by_pod: true
+  )
+
+  puts '-' * 50
+  # pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON]
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH]
+end
+
+lane :test4 do
+  analyze_ios_linkmap(
+    filepath: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
+    search_symbol: 'TDATEvo'
+  )
+  pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL]
 end

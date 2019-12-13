@@ -1,5 +1,5 @@
 require 'fastlane/action'
-require_relative '../helper/analyze_ios_linkmap_helper'
+require_relative '../helper/analyze_ios_linkmap_parser'
 
 module Fastlane
   module Actions
@@ -13,50 +13,65 @@ module Fastlane
 
     class AnalyzeIosLinkmapAction < Action
       def self.run(params)
-        filepath      = params[:filepath]
+        file_path     = params[:file_path]
         search_symbol = params[:search_symbol]
+        all_objects   = params[:all_objects]  || false
         all_symbols   = params[:all_symbols]  || false
         merge_by_pod  = params[:merge_by_pod] || false
 
-        parser = Fastlane::Helper::LinkMap::Parser.new({
-          filepath: filepath,
-          all_symbols: all_symbols
-        })
+        linkmap_parser = Fastlane::Helper::LinkMap::Parser.new(
+          if search_symbol
+            {
+              file_path: file_path,
+              all_objects: true,
+              all_symbols: true
+            }
+          else
+            {
+              file_path: file_path,
+              all_objects: all_objects,
+              all_symbols: all_symbols
+            }
+          end
+        )
 
+        # parse Linkmap.txt
+        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH] = linkmap_parser.pretty_hash
+        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON] = linkmap_parser.pretty_json
+
+        # merge Linkmap.txt parsed all symbols by library
+        if merge_by_pod
+          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH] = linkmap_parser.pretty_merge_by_pod_hash
+          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON] = linkmap_parser.pretty_merge_by_pod_json
+        end
+
+        # if search a symbol from Linkmap.txt
         if search_symbol
           Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL] = []
-          parser.pretty_hash[:librarys].each do |lib|
-            lib[:objects].each do |obj|
+          linkmap_parser.pretty_hash[:librarys].each do |lib|
+            lib[:object_files].each do |obj|
               obj[:symbols].each do |symol|
                 next unless symol[:name].include?(search_symbol)
 
                 Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL] << {
-                  library: lib[:library],
-                  object_file: obj[:object],
+                  library: lib[:name],
+                  object_file: obj[:file_name],
                   symbol: symol[:name]
                 }
               end
             end
           end
         end
-
-        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH] = parser.pretty_hash
-        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON] = parser.pretty_json
-
-        if merge_by_pod
-          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH] = parser.pretty_merge_by_pod_hash
-          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON] = parser.pretty_merge_by_pod_json
-        end
       end
 
       def self.available_options
         [
           FastlaneCore::ConfigItem.new(
-            key: :filepath,
+            key: :file_path,
             description: "/your/path/to/linkmap.txt",
             verify_block: ->(value) {
-              UI.user_error("❌ filepath not pass") unless value
-              UI.user_error!("❌ filepath #{value} not exist") unless File.exist?(value)
+              UI.user_error("❌ file_path not pass") unless value
+              UI.user_error!("❌ file_path #{value} not exist") unless File.exist?(value)
             }
           ),
           FastlaneCore::ConfigItem.new(
@@ -66,35 +81,29 @@ module Fastlane
           ),
           FastlaneCore::ConfigItem.new(
             key: :all_symbols,
-            description: "print all symbol size ???",
-            optional: true
+            description: "print a object fille all symbols ???",
+            optional: true,
+            default_value: false,
+            is_string: false
+          ),
+          FastlaneCore::ConfigItem.new(
+            key: :all_objects,
+            description: "print a library all object files ???",
+            optional: true,
+            default_value: false,
+            is_string: false
           ),
           FastlaneCore::ConfigItem.new(
             key: :merge_by_pod,
             description: "merge linkmap parsed hash by pod name ???",
-            optional: true
+            optional: true,
+            default_value: false,
+            is_string: false
           )
         ]
       end
 
       def self.example_code
-        [
-          'analyze_ios_linkmap(filepath: "/path/to/linkmap.txt")
-          pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH]
-          pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON]',
-          'analyze_ios_linkmap(
-            filepath: "/path/to/linkmap.txt",
-            search_symbol: "TDATEvo"
-          )
-          pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL]'
-          'analyze_ios_linkmap(
-            filepath: "/path/to/linkmap.txt",
-            all_symbols: false,
-            merge_by_pod: true
-          )
-          pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH]
-          pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON]'
-        ]
       end
 
       def self.return_value
