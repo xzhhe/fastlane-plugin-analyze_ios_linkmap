@@ -2,7 +2,7 @@ require 'pp'
 
 lane :test1 do
   analyze_ios_linkmap(
-    filepath: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt'
+    file_path: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt'
   )
 
   puts '-' * 50
@@ -12,7 +12,7 @@ end
 
 lane :test2 do
   analyze_ios_linkmap(
-    filepath: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
+    file_path: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
     all_symbols: true
   )
 
@@ -23,7 +23,7 @@ end
 
 lane :test3 do
   analyze_ios_linkmap(
-    filepath: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
+    file_path: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
     merge_by_pod: true
   )
 
@@ -34,7 +34,7 @@ end
 
 lane :test4 do
   analyze_ios_linkmap(
-    filepath: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
+    file_path: '/Users/xiongzenghui/Desktop/Demo-LinkMap-normal-arm64.txt',
     search_symbol: 'TDATEvo'
   )
   pp Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL]

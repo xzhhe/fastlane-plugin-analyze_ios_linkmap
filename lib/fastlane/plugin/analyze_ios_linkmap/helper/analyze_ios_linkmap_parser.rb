@@ -176,14 +176,14 @@ module Fastlane
           library.dead_symbol_size += stripped_symbol.size
         end
 
-        def pretty_json
+        def generate_json
           return @json_result if @json_result
 
-          @json_result = JSON.pretty_generate(pretty_hash)
+          @json_result = JSON.generate(generate_hash)
           @json_result
         end
 
-        def pretty_hash
+        def generate_hash
           return @hash_result if @hash_result
 
           # sort object_map[i].ObjectFile.symbols
@@ -228,7 +228,7 @@ module Fastlane
           @hash_result = {
             count: fixed_librarys.count,
             size: total_size,
-            format_total_size: Fastlane::Helper::LinkMap::FileHelper.format_size(total_size),
+            format_size: Fastlane::Helper::LinkMap::FileHelper.format_size(total_size),
             dead_size: total_dead_size,
             format_dead_size: Fastlane::Helper::LinkMap::FileHelper.format_size(total_dead_size),
             librarys: fixed_librarys
@@ -236,21 +236,21 @@ module Fastlane
           @hash_result
         end
 
-        def pretty_merge_by_pod_json
+        def generate_merge_by_pod_json
           return @merge_json_result if @merge_json_result
-          @merge_json_result = JSON.pretty_generate(pretty_merge_by_pod_hash)
+          @merge_json_result = JSON.generate(generate_merge_by_pod_hash)
           @merge_json_result
         end
 
-        def pretty_merge_by_pod_hash
+        def generate_merge_by_pod_hash
           return @merge_hash_result if @merge_hash_result
 
           @merge_hash_result = {
-            count: pretty_hash[:count],
-            size: pretty_hash[:size],
-            format_size: pretty_hash[:format_size],
-            dead_size: pretty_hash[:dead_size],
-            format_dead_size: pretty_hash[:format_dead_size]
+            count: generate_hash[:count],
+            size: generate_hash[:size],
+            format_size: generate_hash[:format_size],
+            dead_size: generate_hash[:dead_size],
+            format_dead_size: generate_hash[:format_dead_size]
           }
 
           # 合并 subspec 下的 library
@@ -283,7 +283,7 @@ module Fastlane
           #     └── SecurityGuardSDK.framework
           #
           pod_hash = Hash.new
-          pretty_hash[:librarys].each_with_object(pod_hash) do |lib, hash|
+          generate_hash[:librarys].each_with_object(pod_hash) do |lib, hash|
             apod_librarys = hash[lib[:podspec_name]]
             apod_librarys ||= Array.new
             apod_librarys << lib

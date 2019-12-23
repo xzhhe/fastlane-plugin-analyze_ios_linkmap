@@ -19,6 +19,12 @@ module Fastlane
         all_symbols   = params[:all_symbols]  || false
         merge_by_pod  = params[:merge_by_pod] || false
 
+        UI.important("❗️[analyze_ios_linkmap_action:run] file_path: #{file_path}")
+        UI.important("❗️[analyze_ios_linkmap_action:run] search_symbol: #{search_symbol}")
+        UI.important("❗️[analyze_ios_linkmap_action:run] all_objects: #{all_objects}")
+        UI.important("❗️[analyze_ios_linkmap_action:run] all_symbols: #{all_symbols}")
+        UI.important("❗️[analyze_ios_linkmap_action:run] merge_by_pod: #{merge_by_pod}")
+
         linkmap_parser = Fastlane::Helper::LinkMap::Parser.new(
           if search_symbol
             {
@@ -36,19 +42,19 @@ module Fastlane
         )
 
         # parse Linkmap.txt
-        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH] = linkmap_parser.pretty_hash
-        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON] = linkmap_parser.pretty_json
+        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_HASH] = linkmap_parser.generate_hash
+        Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_JSON] = linkmap_parser.generate_json
 
         # merge Linkmap.txt parsed all symbols by library
         if merge_by_pod
-          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH] = linkmap_parser.pretty_merge_by_pod_hash
-          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON] = linkmap_parser.pretty_merge_by_pod_json
+          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_HASH] = linkmap_parser.generate_merge_by_pod_hash
+          Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_PARSED_MERGE_JSON] = linkmap_parser.generate_merge_by_pod_json
         end
 
         # if search a symbol from Linkmap.txt
         if search_symbol
           Fastlane::Actions.lane_context[Fastlane::Actions::ShatedValues::ANALYZE_IOS_LINKMAP_SEARCH_SYMBOL] = []
-          linkmap_parser.pretty_hash[:librarys].each do |lib|
+          linkmap_parser.generate_hash[:librarys].each do |lib|
             lib[:object_files].each do |obj|
               obj[:symbols].each do |symol|
                 next unless symol[:name].include?(search_symbol)

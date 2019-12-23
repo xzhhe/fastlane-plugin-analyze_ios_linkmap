@@ -63,7 +63,7 @@ describe Fastlane::Actions::AnalyzeIosLinkmapAction do
           all_symbols: false
         }
       )
-      puts parser.pretty_json
+      puts parser.generate_json
     end
 
     it 'parse - 02' do
@@ -75,7 +75,7 @@ describe Fastlane::Actions::AnalyzeIosLinkmapAction do
           all_symbols: false
         }
       )
-      puts parser.pretty_json
+      puts parser.generate_json
     end
 
     it 'parse - 03' do
@@ -87,7 +87,7 @@ describe Fastlane::Actions::AnalyzeIosLinkmapAction do
           all_symbols: true
         }
       )
-      puts parser.pretty_json
+      puts parser.generate_json
     end
 
     it 'parse-merge_by_pod' do
@@ -99,7 +99,7 @@ describe Fastlane::Actions::AnalyzeIosLinkmapAction do
           all_symbols: false
         }
       )
-      puts parser.pretty_merge_by_pod_json
+      puts parser.generate_merge_by_pod_json
     end
   end
 
